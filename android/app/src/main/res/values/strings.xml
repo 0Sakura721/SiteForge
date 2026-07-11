@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SiteForge</string>
+    <string name="tab_dashboard">控制台</string>
+    <string name="tab_sites">站点</string>
+    <string name="tab_create">创建</string>
+    <string name="tab_files">文件</string>
+    <string name="tab_settings">设置</string>
+    <string name="server_running">服务器运行中</string>
+    <string name="server_stopped">服务器已停止</string>
+    <string name="site_running">运行中</string>
+    <string name="site_stopped">已停止</string>
+    <string name="btn_start">启动</string>
+    <string name="btn_stop">停止</string>
+    <string name="btn_restart">重启</string>
+    <string name="btn_delete">删除</string>
+    <string name="btn_create">创建站点</string>
+    <string name="btn_save">保存</string>
+    <string name="btn_cancel">取消</string>
+    <string name="label_site_name">站点名称</string>
+    <string name="label_site_type">站点类型</string>
+    <string name="label_template">模板</string>
+    <string name="label_description">描述</string>
+    <string name="hint_site_name">my-website</string>
+    <string name="type_static">静态站点</string>
+    <string name="type_single_page">单页应用</string>
+    <string name="notification_channel_server">站点服务器</string>
+    <string name="notification_server_running">SiteForge 服务器运行中</string>
+    <string name="notification_tap_manage">点击进入管理</string>
+</resources>
