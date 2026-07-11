@@ -53,12 +53,19 @@ ${styles()}
                 <div class="stat-card"><span class="stat-num">$running</span><span class="stat-label">运行中</span></div>
                 <div class="stat-card"><span class="stat-num">${sites.size - running}</span><span class="stat-label">已停止</span></div>
             </div>
+            <div class="card tutorial-box">
+                <h2>📖 快速教程</h2>
+                <div class="tutorial-steps">
+                    <div class="t-step"><span>1</span> 在 App 中启动服务器</div>
+                    <div class="t-step"><span>2</span> 创建站点或导入 HTML 文件夹</div>
+                    <div class="t-step"><span>3</span> 在浏览器访问：<code>http://$ip:$port/站点名/</code></div>
+                </div>
+            </div>
             <div class="card">
                 <h2>访问信息</h2>
                 <div class="info-row"><span>设备 IP</span><strong>$ip</strong></div>
                 <div class="info-row"><span>服务器端口</span><strong>$port</strong></div>
                 <div class="info-row"><span>系统版本</span><strong>Android ${Build.VERSION.SDK_INT}</strong></div>
-                <div class="info-row"><span>处理器</span><strong>ARM64</strong></div>
             </div>
         </div>
 
@@ -202,6 +209,11 @@ h1 { font-size:1.6rem; margin-bottom:1.5rem; }
 .card { background:#fff; border-radius:12px; padding:1.5rem; box-shadow:0 1px 3px rgba(0,0,0,0.06); margin-bottom:1rem; }
 .card h2 { font-size:1.05rem; margin-bottom:1rem; }
 .card.empty { text-align:center; padding:3rem; color:#999; }
+.tutorial-box { background:linear-gradient(135deg,#eef0fd,#f3e5f5); border:1px solid #d4c5f9; }
+.tutorial-steps { display:flex; flex-direction:column; gap:10px; }
+.t-step { display:flex; align-items:center; gap:10px; font-size:0.875rem; color:#333; }
+.t-step span { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#667eea; color:#fff; font-size:0.75rem; font-weight:700; flex-shrink:0; }
+.t-step code { font-size:0.78rem; background:rgba(255,255,255,0.8); }
 .info-row { display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid #f0f0f0; }
 .info-row:last-child { border:none; }
 .info-row span { color:#888; font-size:0.875rem; }

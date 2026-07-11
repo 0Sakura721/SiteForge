@@ -1,10 +1,12 @@
 package com.siteforge.app.server
 
 import android.content.Context
+import android.net.Uri
+import android.provider.DocumentsContract
 import android.util.Log
 import fi.iki.elonen.NanoHTTPD
+import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.net.ServerSocket
 
@@ -107,14 +109,20 @@ class SiteForgeWebServer(
     }
 
     private fun serveSiteFile(siteName: String, path: String): Response {
+        val site = siteManager.getSiteByName(siteName) ?: return serve404()
+
+        // 如果是自定义路径（SAF URI），从 content provider 读取
+        if (site.customPath.isNotEmpty()) {
+            return serveFromCustomPath(site, path)
+        }
+
+        // 默认：从 filesDir/sites/ 读取
         var file = File(sitesDir, "$siteName/$path")
         if (!file.exists() || !file.isFile) {
-            // 尝试作为目录，查找 index.html
             val indexFile = File(sitesDir, "$siteName/$path/index.html")
             if (indexFile.exists() && indexFile.isFile) {
                 file = indexFile
             } else {
-                // 回退到根目录的 index.html
                 file = File(sitesDir, "$siteName/index.html")
             }
         }
@@ -123,13 +131,88 @@ class SiteForgeWebServer(
             val mime = getMimeType(file.name)
             try {
                 val bytes = file.readBytes()
-                newFixedLengthResponse(Response.Status.OK, mime, java.io.ByteArrayInputStream(bytes), bytes.size.toLong())
+                newFixedLengthResponse(Response.Status.OK, mime, ByteArrayInputStream(bytes), bytes.size.toLong())
             } catch (e: FileNotFoundException) {
                 serve404()
             }
         } else {
             serve404()
         }
+    }
+
+    /**
+     * 从用户选择的 SAF 目录中提供文件服务
+     */
+    private fun serveFromCustomPath(site: com.siteforge.app.data.model.Site, path: String): Response {
+        return try {
+            val baseUri = Uri.parse(site.customPath)
+            // 尝试查找文件
+            val fileUri = findFileInDocumentTree(baseUri, path)
+            if (fileUri != null) {
+                context.contentResolver.openInputStream(fileUri)?.use { stream ->
+                    val bytes = stream.readBytes()
+                    val mime = getMimeType(path)
+                    return newFixedLengthResponse(Response.Status.OK, mime, ByteArrayInputStream(bytes), bytes.size.toLong())
+                }
+            }
+            // 回退到 index.html
+            val indexUri = findFileInDocumentTree(baseUri, "index.html")
+            if (indexUri != null) {
+                context.contentResolver.openInputStream(indexUri)?.use { stream ->
+                    val bytes = stream.readBytes()
+                    return newFixedLengthResponse(Response.Status.OK, "text/html", ByteArrayInputStream(bytes), bytes.size.toLong())
+                }
+            }
+            serve404()
+        } catch (e: Exception) {
+            Log.e(TAG, "自定义路径文件读取失败", e)
+            serve404()
+        }
+    }
+
+    /**
+     * 在 DocumentFile 树中按路径查找文件
+     */
+    private fun findFileInDocumentTree(baseUri: Uri, path: String): Uri? {
+        val cleanPath = path.trim('/')
+        if (cleanPath.isEmpty() || cleanPath == "index.html") {
+            // 尝试直接在根目录找 index.html
+            return findChildDocument(baseUri, "index.html") ?: baseUri
+        }
+
+        val parts = cleanPath.split("/")
+        var currentUri: Uri? = baseUri
+
+        for ((index, part) in parts.withIndex()) {
+            if (currentUri == null) return null
+            currentUri = findChildDocument(currentUri, part)
+        }
+        return currentUri
+    }
+
+    private fun findChildDocument(parentUri: Uri, displayName: String): Uri? {
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+            parentUri,
+            DocumentsContract.getDocumentId(parentUri)
+        )
+        val cursor = context.contentResolver.query(
+            childrenUri,
+            arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME
+            ),
+            null, null, null
+        )
+        cursor?.use {
+            while (it.moveToNext()) {
+                val name = it.getString(1) ?: continue
+                if (name.equals(displayName, ignoreCase = true)) {
+                    val docId = it.getString(0)
+                    return DocumentsContract.buildDocumentUriUsingTree(parentUri, docId)
+                }
+            }
+        }
+        return null
     }
 
     private fun handleApi(session: IHTTPSession, path: String): Response {

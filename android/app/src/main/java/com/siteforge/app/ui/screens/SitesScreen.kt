@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,7 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun SitesScreen() {
+fun SitesScreen(onSiteSelected: (Long) -> Unit = {}) {
     val context = LocalContext.current
     val app = context.applicationContext as SiteForgeApplication
     val sites by app.repository.allSites.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -51,31 +52,37 @@ fun SitesScreen() {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("还没有任何站点", color = TextSecondary, fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("点击底部「创建」标签来创建第一个站点", color = TextSecondary, fontSize = 14.sp)
+                    Text("点击底部「创建」来新建站点\n或导入已有的 HTML 文件夹", color = TextSecondary, fontSize = 14.sp)
                 }
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(sites, key = { it.id }) { site ->
-                    SiteListItem(site = site, onDelete = { showDeleteDialog = site })
+                    SiteListItem(
+                        site = site,
+                        onClick = { onSiteSelected(site.id) },
+                        onDelete = { showDeleteDialog = site }
+                    )
                 }
             }
         }
     }
 
-    // 删除确认对话框
     showDeleteDialog?.let { site ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
             title = { Text("删除站点") },
-            text = { Text("确定要删除站点「${site.name}」吗？此操作不可恢复。") },
+            text = {
+                Text(
+                    "确定要删除「${site.name}」吗？" +
+                    if (site.customPath.isNotEmpty()) "\n\n⚠️ 导入的原始文件夹不会被删除。" else "\n\n所有站点文件将被永久删除，不可恢复。"
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
                         scope.launch {
-                            withContext(Dispatchers.IO) {
-                                app.repository.delete(site)
-                            }
+                            withContext(Dispatchers.IO) { app.repository.delete(site) }
                             showDeleteDialog = null
                         }
                     },
@@ -92,57 +99,96 @@ fun SitesScreen() {
 @Composable
 private fun SiteListItem(
     site: com.siteforge.app.data.model.Site,
+    onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (site.status == "running") Icons.Default.PlayCircle else Icons.Default.StopCircle,
-                contentDescription = null,
-                tint = if (site.status == "running") StatusRunning else StatusStopped,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 状态图标
+                Icon(
+                    imageVector = if (site.status == "running") Icons.Default.PlayCircle else Icons.Default.StopCircle,
+                    contentDescription = null,
+                    tint = if (site.status == "running") StatusRunning else StatusStopped,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(site.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                if (site.description.isNotEmpty()) {
-                    Text(site.description, fontSize = 13.sp, color = TextSecondary, maxLines = 1)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        site.type.let { if (it == "static") "静态" else "SPA" },
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        color = if (site.status == "running") StatusRunningBg else StatusStoppedBg,
-                        shape = MaterialTheme.shapes.small
-                    ) {
+                // 站点信息
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            if (site.status == "running") "运行中" else "已停止",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            fontSize = 11.sp,
-                            color = if (site.status == "running") StatusRunning else StatusStopped,
-                            fontWeight = FontWeight.Medium
+                            site.name,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            color = if (site.status == "running") StatusRunningBg else StatusStoppedBg,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                if (site.status == "running") "运行中" else "已停止",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                fontSize = 11.sp,
+                                color = if (site.status == "running") StatusRunning else StatusStopped,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    if (site.description.isNotEmpty()) {
+                        Text(
+                            site.description,
+                            fontSize = 12.sp,
+                            color = TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                }
-            }
 
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "删除",
-                    tint = StatusStopped,
-                    modifier = Modifier.size(20.dp)
-                )
+                    // 类型和路径信息
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            site.type.let { if (it == "static") "静态" else "SPA" },
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                        if (site.customPath.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                Icons.Default.FolderOpen,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text("外部目录", fontSize = 11.sp, color = TextSecondary)
+                        }
+                    }
+                }
+
+                // 删除按钮
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = StatusStopped,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
