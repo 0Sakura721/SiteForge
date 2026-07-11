@@ -70,12 +70,14 @@ fun CreateSiteScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TypeChip(
+                        modifier = Modifier.weight(1f),
                         selected = type == "static",
                         label = "静态站点",
                         subtitle = "HTML/CSS/JS",
                         onClick = { type = "static" }
                     )
                     TypeChip(
+                        modifier = Modifier.weight(1f),
                         selected = type == "single-page",
                         label = "单页应用",
                         subtitle = "SPA",
@@ -158,14 +160,14 @@ fun CreateSiteScreen(
 
 @Composable
 private fun TypeChip(
+    modifier: Modifier = Modifier,
     selected: Boolean,
     label: String,
     subtitle: String,
     onClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier
-            .weight(1f),
+        modifier = modifier,
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         color = if (selected) PrimaryLight else CardBackground,
