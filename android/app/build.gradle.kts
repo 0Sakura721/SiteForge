@@ -21,9 +21,7 @@ android {
             useSupportLibrary = true
         }
 
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
-        }
+        // ndk abiFilters 与 splits abi 冲突，仅保留 splits 实现 ABI 分包
     }
 
     buildTypes {
