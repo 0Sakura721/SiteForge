@@ -49,13 +49,16 @@ class MainActivity : ComponentActivity() {
 
         // 检查是否首次启动
         val prefs = getSharedPreferences("siteforge_prefs", Context.MODE_PRIVATE)
-        val hasSeenOnboarding = prefs.getBoolean("has_seen_onboarding", false)
 
         setContent {
             SiteForgeTheme {
-                if (!hasSeenOnboarding) {
+                var showOnboarding by remember {
+                    mutableStateOf(!prefs.getBoolean("has_seen_onboarding", false))
+                }
+                if (showOnboarding) {
                     OnboardingScreen(onComplete = {
                         prefs.edit().putBoolean("has_seen_onboarding", true).apply()
+                        showOnboarding = false
                     })
                 } else {
                     MainApp(
